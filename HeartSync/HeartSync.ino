@@ -15,6 +15,7 @@ const int PIN_BLINK = 13;  // Pin 13 is the on-board LED
 const int THRESHOLD = 570; // TODO find a good threshold
 const int PIN_LED_ECG = 6;
 const int NUM_ECG_LED = 10;
+const int NUM_HEART_LED = 10;
 
 const int PIN_LED_BLUE = 7;
 const int BLUE[4] = {0, 1, 2, 3};      // LEDs that should be lighting up blue
@@ -63,7 +64,7 @@ void setup()
   FastLED.addLeds<NEOPIXEL, PIN_LED_ECG>(leds, NUM_ECG_LED);
 
   // Adding the Blue heart LEDs in the blue array
-  FastLED.addLeds<NEOPIXEL, PIN_LED_BLUE>(heartLeds, sizeof(BLUE) + sizeof(RED));
+  FastLED.addLeds<NEOPIXEL, PIN_LED_BLUE>(heartLeds, NUM_HEART_LED);
 
   FastLED.show();
 
