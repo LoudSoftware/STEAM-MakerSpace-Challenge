@@ -1,6 +1,5 @@
-// FastLED - Version: Latest 
+// FastLED - Version: Latest
 #include <FastLED.h>
-
 
 #define USE_ARDUINO_INTERRUPTS true
 #include <PulseSensorPlayground.h>
@@ -9,14 +8,17 @@
 const int OUTPUT_TYPE = SERIAL_PLOTTER;
 
 CRGB leds[10];
+CRGB heartLeds[10];
 
-const int PIN_INPUT = A0; //Heart reate sensor
-const int PIN_BLINK = 13; // Pin 13 is the on-board LED
+const int PIN_INPUT = A0;  //Heart reate sensor
+const int PIN_BLINK = 13;  // Pin 13 is the on-board LED
 const int THRESHOLD = 570; // TODO find a good threshold
 const int PIN_LED_ECG = 6;
 const int NUM_ECG_LED = 10;
-const int BLUE[4] = {0,1,2,3}; // LEDs that should be lighting up blue
-const int RED[6] = {4,5,6,7,8,9}; // LEDs that should be lighting up red
+
+const int PIN_LED_BLUE = 7;
+const int BLUE[4] = {0, 1, 2, 3};      // LEDs that should be lighting up blue
+const int RED[6] = {4, 5, 6, 7, 8, 9}; // LEDs that should be lighting up red
 
 /*
  * LCD INFO
@@ -41,84 +43,133 @@ PulseSensorPlayground pulseSensor;
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
 
   // Configure the PulseSensor manager.
 
   pulseSensor.analogInput(PIN_INPUT);
   pulseSensor.blinkOnPulse(PIN_BLINK);
-  
+
   pulseSensor.setSerial(Serial);
   pulseSensor.setOutputType(OUTPUT_TYPE);
   pulseSensor.setThreshold(THRESHOLD);
 
   // Now that everything is ready, start reading the PulseSensor signal.
   pulseSensor.begin();
-  
+
+  // Adding the ECG leds in the leds array
   FastLED.addLeds<NEOPIXEL, PIN_LED_ECG>(leds, NUM_ECG_LED);
+
+  // Adding the Blue heart LEDs in the blue array
+  FastLED.addLeds<NEOPIXEL, PIN_LED_BLUE>(heartLeds, sizeof(BLUE) + sizeof(RED));
+
   FastLED.show();
-  
+
   // Set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
   lcd.print("<3  BPM:       ");
 }
 
+void animateECG(CRGB color)
+{
+  for (int i = 0; i < NUM_ECG_LED; i++)
+  {
+    leds[i] = color;
+    FastLED.show();
+    delay(20);
+  }
+  for (int i = 0; i < NUM_ECG_LED; i++)
+  {
+    leds[i] = CRGB::Black;
+    FastLED.show();
+    delay(20);
+  }
+}
 
-void animateECG(CRGB color){
-    for(int i=0; i < NUM_ECG_LED; i++){
-      leds[i] = color; 
-        FastLED.show(); 
-        delay(20); 
-    }
-    for(int i=0; i < NUM_ECG_LED; i++){
-      leds[i] = CRGB::Black; 
-        FastLED.show(); 
-        delay(20); 
-    }
+void animateHeart()
+{
+  //Turning on and off the blue LEDs
+  for (int i = 0; i < sizeof(BLUE); i++)
+  {
+    heartLeds[i] = CRGB::Blue;
+    FastLED.show();
+    delay(10);
   }
 
+  for (int i = sizeof(BLUE); i > 0; i--)
+  {
+    heartLeds[i] = CRGB::Black;
+    FastLED.show();
+    delay(10);
+  }
 
-void loop() {
+  // Turning on and off the red leds
+  for (int i = sizeof(BLUE); i < sizeof(RED); i++)
+  {
+    heartLeds[i] = CRGB::Red;
+    FastLED.show();
+    delay(10);
+  }
+
+  for (int i = sizeof(BLUE); i < sizeof(RED); i++)
+  {
+    heartLeds[i] = CRGB::Black;
+    FastLED.show();
+    delay(10);
+  }
+}
+
+void loop()
+{
   delay(20);
 
   // write the latest sample to Serial.
- pulseSensor.outputSample();
+  pulseSensor.outputSample();
 
   /*
      If a beat has happened since we last checked,
      write the per-beat information to Serial.
    */
-  if (pulseSensor.sawStartOfBeat()) {
-   pulseSensor.outputBeat();
-   
-   int bpm = pulseSensor.getBeatsPerMinute();
-   if (bpm < 140){
-     
-     lcd.setCursor(8,0);
-     lcd.print("            ");
-     
-     lcd.setCursor(10,0);
-     lcd.print(bpm);
-     
-     CRGB color = CRGB::White;
-     
-     if(60 < bpm && bpm < 100){
-       lcd.setCursor(0,1);
-       lcd.print("Rested :)        ");
-       color = CRGB::Purple;
-     } else if(bpm <= 60){
-       lcd.setCursor(0,1);
-       lcd.print("Wayy relaxed     ");
-       color = CRGB::Green;
-     } else if (bpm >=100){
-       lcd.setCursor(0,1);
-       lcd.print("Beating fast     ");
-       color = CRGB::Orange;
-     }
-     
-     animateECG(color);
-   }
-   
+  if (pulseSensor.sawStartOfBeat())
+  {
+    pulseSensor.outputBeat();
+
+    int bpm = pulseSensor.getBeatsPerMinute();
+    // Making sure we're not reading something too crazy
+    if (bpm < 140)
+    {
+
+      lcd.setCursor(8, 0);
+      lcd.print("            ");
+
+      lcd.setCursor(10, 0);
+      lcd.print(bpm);
+
+      CRGB color = CRGB::White;
+
+      if (60 < bpm && bpm < 100)
+      {
+        lcd.setCursor(0, 1);
+        lcd.print("Rested :)        ");
+        color = CRGB::Purple;
+      }
+      else if (bpm <= 60)
+      {
+        lcd.setCursor(0, 1);
+        lcd.print("Wayy relaxed     ");
+        color = CRGB::Green;
+      }
+      else if (bpm >= 100)
+      {
+        lcd.setCursor(0, 1);
+        lcd.print("Beating fast     ");
+        color = CRGB::Orange;
+      }
+
+      animateECG(color);
+      animateHeart();
+    }
   }
 }
